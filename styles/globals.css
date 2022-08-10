@@ -14,3 +14,9 @@ a {
 * {
   box-sizing: border-box;
 }
+.border-red {
+  border: 1px solid red;
+}
+.border-green {
+  border: 1px solid green;
+}
