@@ -17,6 +17,8 @@ import {
   Button,
   Typography,
   CircularProgress,
+  CardHeader,
+  Card,
 } from "@mui/material";
 import { InfoTwoTone } from "@mui/icons-material";
 const Home: NextPage = ({ data, county, stations, constituency }) => {
@@ -29,6 +31,7 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
   const [_county, setCounty] = React.useState(county);
   const [_constituency, setConst] = React.useState(constituency);
   const [_station, setStation] = React.useState(stations);
+  const [updating, setUpdating] = React.useState(false);
 
   let url1 = "https://static.nation.africa/2022/president.json";
   let url2 = "https://static.nation.africa/2022/county.json";
@@ -54,7 +57,7 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
   const fetchData = async (url, setLoading, setData, setError, type) => {
     try {
       setLoading(true);
-      console.log("fetching nation");
+
       const response = await fetch(url);
       const data = await response.json();
       if (type === "county") {
@@ -64,7 +67,7 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
       } else {
         setData(data);
       }
-      console.log(data);
+
       setLoading(false);
     } catch (error) {
       console.log(error.message);
@@ -84,9 +87,13 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
   const handleSearch = () => {
     let info = null;
     if (search) {
-      info = prs.find((item) => item["county"] === search);
+      info = prs.find((item) =>
+        item?.region?.COUNTY_NAME?.includes(search.toUpperCase())
+      );
       if (info) return setPrs(info);
-      info = prs.find((item) => item["constituency"] === search);
+      info = prs.find((item) =>
+        item?.region?.CONSTITUENCY_NAME?.includes(search.toUpperCase())
+      );
       if (info) return setPrs(info);
       return setError("No result found");
     }
@@ -98,13 +105,21 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
     //fetchData(url4, setLoading, setConst, setError, "");
     //fetchData(url3, setLoading, setStation, setError, "");
     //arrayHashmap(prs);
-    filterPayload(prs, "COUNTY_NO", county);
+
+    let timeout = setTimeout(() => {
+      fetchData(url1, setUpdating, setPrs, setError, type);
+    }, 5000);
+    return () => {
+      clearTimeout(timeout);
+    };
   }, []);
 
   const memoPRS = React.useMemo(() => {
     let key = type === "county" ? "COUNTY_NO" : "CONSTITUENCY_NO";
     const region = type === "county" ? county : constituency;
-    const payload = filterPayload(prs, key, region);
+    let payload = filterPayload(prs, key, region);
+    //payload = [...payload].sort((a, z) => a[key] - z[key]);
+
     return payload;
   }, [prs]);
   console.log(memoPRS, "rss");
@@ -117,11 +132,14 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
       </Head>
 
       <main className={` ${styles.main} flex flex-col sm:flex-row`}>
-        <section className="w-3/4 border-red my-4 py-8">
-          <Typography className="text-red-400 p-4 text-center">
-            General Elections 2022 Results.
+        <section className="w-full py-2 my-2 sm:w-3/4 sm:my-4 sm:py-8">
+          <Typography className="text-xl p-4 text-center">
+            General Elections 2022 Results:{" "}
+            <b>{stations[0].PRESIDENTIALTOTAL?.toLocaleString()}</b> of {"  "}
+            <b> {stations[1]?.STATIONTOTAL.toLocaleString()}</b> polling
+            stations
           </Typography>
-          <Box className="  flex justify-evenly">
+          <Box className="  flex gap-6 items-center flex-col sm:flex-row justify-evenly">
             <div>
               <Button
                 onClick={handleClick("county")}
@@ -183,7 +201,16 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
             )}
           </Box>
         </section>
-        <section className="w-1/4 border-green"></section>
+        <section className="w-1/4 ">
+          <Box className="flex flex-col gap-6">
+            <Card>
+              <CardHeader />
+            </Card>
+            <Card>
+              <CardHeader />
+            </Card>
+          </Box>
+        </section>
       </main>
 
       <footer className={styles.footer}>
@@ -196,9 +223,10 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
 export default Home;
 
 const ElectionsTable = ({ data, region }) => {
-  console.log("dada", data);
   const [topLevel] = data;
   let url = "https://elections.nation.africa/images/candidates/2022";
+  console.log("region", region, data);
+  let location = region === "County" ? "COUNTY_NO" : "CONSTITUENCY_NO";
   return (
     <Box>
       <Typography></Typography>
@@ -235,12 +263,12 @@ const ElectionsTable = ({ data, region }) => {
                   </div>
                 </div>
               </TableCell>
+              <TableCell>Total votes Cast</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {}
             {data.map((item, i) =>
-              region == "county" ? (
+              region == "County" ? (
                 <ElectionTable key={i} i={i} data={item} />
               ) : (
                 <ElectionTableConstituency key={i} i={i} data={item} />
@@ -258,14 +286,17 @@ const ElectionTable = ({ data, i }) => {
     <TableRow key={i}>
       {" "}
       <TableCell>{i + 1}</TableCell>
-      <TableCell>{data[0].region.COUNTY_NAME}</TableCell>
+      <TableCell>{data[0]?.region?.COUNTY_NAME}</TableCell>
       <TableCell>
-        {data[0]?.TOTAL_PRESIDENT_COUNTY_VOTES_CAST?.toLocaleString()}{" "}
+        {data[0]?.CANDIDATE_VOTES?.toLocaleString()}{" "}
         <b className="pl-3 ml-4">({Math.ceil(data[0]?.COUNTY_PERCENTAGE)})%</b>
       </TableCell>
       <TableCell>
-        {data[1]?.TOTAL_PRESIDENT_COUNTY_VOTES_CAST?.toLocaleString()}
+        {data[1]?.CANDIDATE_VOTES?.toLocaleString()}{" "}
         <b className="pl-3 ml-4">({Math.ceil(data[1]?.COUNTY_PERCENTAGE)})%</b>
+      </TableCell>
+      <TableCell>
+        {data[1]?.TOTAL_PRESIDENT_COUNTY_VOTES_CAST?.toLocaleString()}
       </TableCell>
     </TableRow>
   );
@@ -278,16 +309,19 @@ const ElectionTableConstituency = ({ data, i }) => {
       <TableCell>{i + 1}</TableCell>
       <TableCell>{data[0].region?.CONSTITUENCY_NAME}</TableCell>
       <TableCell>
-        {data[0]?.CANDIDATE_VOTES?.toLocaleString()}{" "}
+        {data[1]?.CANDIDATE_VOTES?.toLocaleString()}{" "}
+        <b className="pl-3 ml-4">
+          ({Math.ceil(data[1]?.CONSTITUENCY_PERCENTAGE)})%
+        </b>
+      </TableCell>
+      <TableCell>
+        {data[0]?.CANDIDATE_VOTES?.toLocaleString()}
         <b className="pl-3 ml-4">
           ({Math.ceil(data[0]?.CONSTITUENCY_PERCENTAGE)})%
         </b>
       </TableCell>
       <TableCell>
-        {data[1]?.CANDIDATE_VOTES?.toLocaleString()}
-        <b className="pl-3 ml-4">
-          ({Math.ceil(data[1]?.CONSTITUENCY_PERCENTAGE)})%
-        </b>
+        {data[0]?.TOTAL_PRESIDENT_CONSTITUENCY_VOTES_CAST?.toLocaleString()}
       </TableCell>
     </TableRow>
   );
@@ -296,8 +330,6 @@ const ElectionTableConstituency = ({ data, i }) => {
 // 298010
 export async function getStaticProps() {
   try {
-    console.log("fetching nation");
-
     let url1 = "https://static.nation.africa/2022/president.json";
     let url2 = "https://static.nation.africa/2022/county.json";
     let url3 = "https://static.nation.africa/2022/stations.json";
