@@ -21,6 +21,7 @@ import {
   Card,
   CardMedia,
   CardContent,
+  TablePagination,
 } from "@mui/material";
 import { InfoTwoTone } from "@mui/icons-material";
 const Home: NextPage = ({ data, county, stations, constituency }) => {
@@ -29,12 +30,16 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
   const [search, setSearch] = React.useState("");
   const [err, setError] = React.useState("");
   const [type, setType] = React.useState("county");
-  const [count, setCount] = React.useState(47);
+  const [count, setCount] = React.useState(48);
   const [_county, setCounty] = React.useState(county);
   const [_constituency, setConst] = React.useState(constituency);
   const [_station, setStation] = React.useState(stations);
   const [updating, setUpdating] = React.useState(false);
   const [candidates, setCandidates] = React.useState([]);
+  const [page, setPage] = React.useState(1);
+
+  const [cur, setCur] = React.useState({ prev: 0, next: count });
+
   let timeout;
 
   let url1 = "https://static.nation.africa/2022/president.json";
@@ -116,12 +121,19 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
     timeout = setInterval(() => {
       fetchData(url1, setUpdating, setPrs, setError, type);
       fetchData(presurl, setLoading, setCandidates, setError, "");
+      fetchData(url3, setUpdating, setStation, setError, "");
     }, 60000);
     return () => {
       clearInterval(timeout);
     };
   }, []);
-
+  const handleChangePage = (e, page) => {
+    console.log(page);
+    setPage(page);
+  };
+  const handleChangeRowsPerPage = (e) => {
+    setCount(e.target.value);
+  };
   const memoPRS = React.useMemo(() => {
     let key = type === "county" ? "COUNTY_NO" : "CONSTITUENCY_NO";
     const region = type === "county" ? county : constituency;
@@ -200,6 +212,7 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
               <TextField
                 type="search"
                 size="small"
+                className="mb-4"
                 placeholder="Search county or constituency"
                 onChange={(e) => setSearch(e.target.value)}
                 onBlur={handleSearch}
@@ -221,10 +234,23 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
               </Box>
             ) : (
               memoPRS.length > 0 && (
-                <ElectionsTable
-                  data={memoPRS}
-                  region={type === "county" ? "County" : "Constituency"}
-                />
+                <>
+                  <ElectionsTable
+                    data={memoPRS}
+                    count={cur}
+                    region={type === "county" ? "County" : "Constituency"}
+                  />
+                  {/*memoPRS.length > 48 && (
+                    <TablePagination
+                      component="div"
+                      count={Math.ceil(memoPRS.length / count)}
+                      page={2}
+                      onPageChange={handleChangePage}
+                      rowsPerPage={count}
+                      onRowsPerPageChange={handleChangeRowsPerPage}
+                    />
+                  )*/}
+                </>
               )
             )}
           </Box>
@@ -240,7 +266,7 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
 
 export default Home;
 
-const ElectionsTable = ({ data, region }) => {
+const ElectionsTable = ({ data, region, count }) => {
   const [topLevel] = data;
   let url = "https://elections.nation.africa/images/candidates/2022";
   //console.log("region", region, data);
@@ -286,13 +312,15 @@ const ElectionsTable = ({ data, region }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.map((item, i) =>
-              region == "County" ? (
-                <ElectionTable key={i} i={i} data={item} />
-              ) : (
-                <ElectionTableConstituency key={i} i={i} data={item} />
-              )
-            )}
+            {data
+              .slice(count.prev, count.next)
+              .map((item, i) =>
+                region == "County" ? (
+                  <ElectionTable key={i} i={i} data={item} />
+                ) : (
+                  <ElectionTableConstituency key={i} i={i} data={item} />
+                )
+              )}
           </TableBody>
         </Table>
       </TableContainer>
