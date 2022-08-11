@@ -176,8 +176,8 @@ const Home: NextPage = ({
     let key = type === "county" ? "COUNTY_NO" : "CONSTITUENCY_NO";
     const value = type === "county" ? "COUNTY_NAME" : "CONSTITUENCY_NAME";
     const region = type === "county" ? county : constituency;
-    const payload = prs.length === 1 ? prs[0] : prs;
-    let payload = filterPayload(payload, key, region);
+    const payloadFix = prs.length === 1 ? prs[0] : prs;
+    let payload = filterPayload(payloadFix, key, region);
     /*
     const pp = payload.slice().sort((a, z) => {
       console.log(a[0].region[value], z[0].region[value], "sortie");
@@ -312,6 +312,11 @@ const SearchInput = ({ sendSearch = (f: string) => f }) => {
   const handleSearch = () => {
     if (text) sendSearch(text);
   };
+  const handleKey = (e) => {
+    if (e.key === "Enter") {
+      if (text) sendSearch(text);
+    }
+  };
   return (
     <>
       <TextField
@@ -319,8 +324,8 @@ const SearchInput = ({ sendSearch = (f: string) => f }) => {
         size="small"
         className="mb-4"
         placeholder="county or constituency"
+        onKeyPress={handleKey}
         onChange={(e) => setText(e.target.value)}
-        onBlur={handleSearch}
       />
 
       <Button
