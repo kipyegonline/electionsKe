@@ -49,6 +49,7 @@ const Home: NextPage = ({
   const [page, setPage] = React.useState(0); // current page on pagination
   // just there
   const [searched, setSearched] = React.useState(false);
+  const [lastUpdate, setLastUpdate] = React.useState(new Date());
   let timeout = React.useRef(null);
   // end points
   let url1 = "https://static.nation.africa/2022/president.json";
@@ -153,6 +154,7 @@ const Home: NextPage = ({
       fetchData(url1, setUpdating, setPrs, setError, type);
       fetchData(presurl, setLoading, setCandidates, setError, "");
       fetchData(url3, setUpdating, setStation, setError, "");
+      setLastUpdate(new Date());
     }, 60000);
     return () => {
       clearInterval(timeout.current);
@@ -188,7 +190,7 @@ const Home: NextPage = ({
     console.log(pp, "ppp");*/
     return payload;
   }, [prs]);
-
+  //console.log(stations);
   return (
     <div className={styles.container}>
       {err && <SnackBar open={!!err} message={err} />}
@@ -218,8 +220,9 @@ const Home: NextPage = ({
         </Typography>
         <Typography className=" text-left sm:text-center" variant="subtitle1">
           {" "}
-          Last updated:{new Date().toDateString()}{" "}
-          {new Date().toLocaleTimeString()}
+          Last updated: {lastUpdate.toDateString()}
+          {", "}
+          {lastUpdate.toLocaleTimeString()}
         </Typography>
       </section>
       <main className={` ${styles.main} flex flex-col sm:flex-row`}>
@@ -361,7 +364,7 @@ const ElectionsTable = ({ data, region, count }) => {
                 <div className="flex gap-4 item-center">
                   <div className="w-18 h-10">
                     <img
-                      className="w-18 h-10"
+                      className=" w-11/12 sm:w-18 h-10"
                       src={`${url}/${raila?.SMALL_IMAGE}`}
                     />
                   </div>
@@ -378,7 +381,7 @@ const ElectionsTable = ({ data, region, count }) => {
                 <div className="flex gap-4 items-center">
                   <div className="w-18 h-10">
                     <img
-                      className="w-18 h-10"
+                      className="w-11/12 sm:w-18 h-10"
                       src={`${url}/${ruto?.SMALL_IMAGE}`}
                     />
                   </div>
@@ -421,7 +424,6 @@ const ElectionTable = ({ data, i }) => {
   const raila = data.find((item) => item.PRESIDENT_ID === 1);
   return (
     <TableRow key={i}>
-      {" "}
       <TableCell>{i + 1}.</TableCell>
       <TableCell>{data[0]?.region?.COUNTY_NAME}</TableCell>
       <TableCell>
@@ -444,8 +446,7 @@ const ElectionTableConstituency = ({ data, i }) => {
   const raila = data.find((item) => item.PRESIDENT_ID === 1);
   return (
     <TableRow key={i}>
-      {" "}
-      <TableCell>{i + 1}</TableCell>
+      <TableCell>{i + 1}.</TableCell>
       <TableCell>{data[0].region?.CONSTITUENCY_NAME}</TableCell>
       <TableCell>
         {raila?.CANDIDATE_VOTES?.toLocaleString()}{" "}
