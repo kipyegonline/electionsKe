@@ -36,7 +36,8 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
   const [_station, setStation] = React.useState(stations);
   const [updating, setUpdating] = React.useState(false);
   const [candidates, setCandidates] = React.useState([]);
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = React.useState(0);
+  const [constituencyRes, setconstituencyRes] = React.useState([]);
 
   const [cur, setCur] = React.useState({ prev: 0, next: count });
 
@@ -94,20 +95,35 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
         fetchData(url1, setLoading, setPrs, setError, "constituency");
     };
   };
-  const handleSearch = () => {
+  const handleSearch = (search: string) => {
     clearInterval(timeout);
-    return alert("Search functional unavailable for now....");
-    let info = null;
+
+    let info = [];
     if (search) {
-      info = prs.find((item) =>
-        item?.region?.COUNTY_NAME?.includes(search.toUpperCase())
-      );
-      if (info) return setPrs(info);
-      info = prs.find((item) =>
-        item?.region?.CONSTITUENCY_NAME?.includes(search.toUpperCase())
-      );
-      if (info) return setPrs(info);
-      return setError("No result found");
+      if (type === "county") {
+        info = data.filter((smallItem) => {
+          console.log(smallItem?.region?.COUNTY_NAME, search);
+          return smallItem?.region?.COUNTY_NAME.toLowerCase()?.includes(
+            search.toLowerCase()
+          );
+        });
+
+        if (info.length) return setPrs(info);
+        else return alert("No results that " + type);
+      }
+
+      if (type === "constituency") {
+        info = prs.filter((smallItem) => {
+          console.log(smallItem, search, constituencyRes, "small small");
+          return smallItem?.region?.CONSTITUENCY_NAME.toLowerCase()?.includes(
+            search.toLowerCase()
+          );
+        });
+        console.log(info, "countiiiii");
+
+        if (info.length) return setPrs(info);
+        else return alert("No results that " + type);
+      }
     }
   };
   React.useEffect(() => {
@@ -118,6 +134,13 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
     //fetchData(url3, setLoading, setStation, setError, "");
     //arrayHashmap(prs);
     fetchData(presurl, setUpdating, setCandidates, setError, "");
+    fetchData(
+      url1,
+      function (loading) {},
+      setconstituencyRes,
+      setError,
+      "constituency"
+    );
     timeout = setInterval(() => {
       fetchData(url1, setUpdating, setPrs, setError, type);
       fetchData(presurl, setLoading, setCandidates, setError, "");
@@ -133,16 +156,20 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
   };
   const handleChangeRowsPerPage = (e) => {
     setCount(e.target.value);
+    setPage(0);
   };
   const memoPRS = React.useMemo(() => {
     let key = type === "county" ? "COUNTY_NO" : "CONSTITUENCY_NO";
+    const value = type === "county" ? "COUNTY_NAME" : "CONSTITUENCY_NAME";
     const region = type === "county" ? county : constituency;
     let payload = filterPayload(prs, key, region);
-    //payload = [...payload].sort((a, z) => a[key] - z[key]);
+    payload = payload.slice().sort((a, z) => {
+      console.log(a, z, "sortie");
+    });
 
     return payload;
   }, [prs]);
-  console.log(memoPRS, candidates, "rss");
+  console.log(memoPRS, constituencyRes, "rsmmms");
   return (
     <div className={styles.container}>
       <Head>
@@ -154,8 +181,8 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
         {" "}
         <Typography className="text-xl p-2 sm:p-4  mt-4 text-left sm:text-center">
           General Elections 2022 Results:{" "}
-          <b>{stations[0].PRESIDENTIALTOTAL?.toLocaleString()}</b> of {"  "}
-          <b> {stations[1]?.STATIONTOTAL.toLocaleString()}</b> polling stations
+          <b>{stations[0]?.PRESIDENTIALTOTAL?.toLocaleString()}</b> of {"  "}
+          <b> {stations[1]?.STATIONTOTAL?.toLocaleString()}</b> polling stations
         </Typography>
         <Typography className=" text-left sm:text-center" variant="subtitle1">
           Source: Nation AFrica,
@@ -209,22 +236,7 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
               </Button>
             </div>
             <div>
-              <TextField
-                type="search"
-                size="small"
-                className="mb-4"
-                placeholder="Search county or constituency"
-                onChange={(e) => setSearch(e.target.value)}
-                onBlur={handleSearch}
-              />
-
-              <Button
-                onClick={handleSearch}
-                color="primary"
-                className="text-white ml-4 bg-blue-500 hover:bg-blue-500"
-              >
-                Search
-              </Button>
+              <SearchInput sendSearch={handleSearch} />
             </div>
           </Box>
           <Box className="my-4 py-2">
@@ -237,19 +249,19 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
                 <>
                   <ElectionsTable
                     data={memoPRS}
-                    count={cur}
+                    count={{ page, cur: count }}
                     region={type === "county" ? "County" : "Constituency"}
                   />
-                  {/*memoPRS.length > 48 && (
+                  {memoPRS.length > count && (
                     <TablePagination
                       component="div"
-                      count={Math.ceil(memoPRS.length / count)}
-                      page={2}
+                      count={memoPRS.length}
+                      page={page}
                       onPageChange={handleChangePage}
                       rowsPerPage={count}
                       onRowsPerPageChange={handleChangeRowsPerPage}
                     />
-                  )*/}
+                  )}
                 </>
               )
             )}
@@ -266,12 +278,40 @@ const Home: NextPage = ({ data, county, stations, constituency }) => {
 
 export default Home;
 
+const SearchInput = ({ sendSearch }) => {
+  const [text, setText] = React.useState("");
+  const handleSearch = () => {
+    if (text) sendSearch(text);
+  };
+  return (
+    <>
+      <TextField
+        type="search"
+        size="small"
+        className="mb-4"
+        placeholder="Search county or constituency"
+        onChange={(e) => setText(e.target.value)}
+        onBlur={handleSearch}
+      />
+
+      <Button
+        onClick={handleSearch}
+        color="primary"
+        className="text-white ml-4 bg-blue-500 hover:bg-blue-500"
+      >
+        Search
+      </Button>
+    </>
+  );
+};
 const ElectionsTable = ({ data, region, count }) => {
   const [topLevel] = data;
   let url = "https://elections.nation.africa/images/candidates/2022";
   //console.log("region", region, data);
   let location = region === "County" ? "COUNTY_NO" : "CONSTITUENCY_NO";
   //data = region === "Constituency " ? data[0] : data;
+  const { page, cur } = count;
+
   return (
     <Box>
       <Typography></Typography>
@@ -313,12 +353,16 @@ const ElectionsTable = ({ data, region, count }) => {
           </TableHead>
           <TableBody>
             {data
-              .slice(count.prev, count.next)
+              .slice(page * cur, page * cur + cur)
               .map((item, i) =>
                 region == "County" ? (
-                  <ElectionTable key={i} i={i} data={item} />
+                  <ElectionTable key={i} i={i + page * cur} data={item} />
                 ) : (
-                  <ElectionTableConstituency key={i} i={i} data={item} />
+                  <ElectionTableConstituency
+                    key={i}
+                    i={i + page * cur}
+                    data={item}
+                  />
                 )
               )}
           </TableBody>
