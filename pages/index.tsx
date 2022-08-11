@@ -136,9 +136,6 @@ const Home: NextPage = ({
         if (info.length) return setPrs(info[0]);
         else setType("county");
       }
-
-      if (info.length <= 0) setError("No results");
-      setTimeout(() => setError(""), 3000);
     }
   };
 
@@ -179,8 +176,8 @@ const Home: NextPage = ({
     let key = type === "county" ? "COUNTY_NO" : "CONSTITUENCY_NO";
     const value = type === "county" ? "COUNTY_NAME" : "CONSTITUENCY_NAME";
     const region = type === "county" ? county : constituency;
-    //prs=prs.length===1 ? prs[0] :prs
-    let payload = filterPayload(prs, key, region);
+    const payload = prs.length === 1 ? prs[0] : prs;
+    let payload = filterPayload(payload, key, region);
     /*
     const pp = payload.slice().sort((a, z) => {
       console.log(a[0].region[value], z[0].region[value], "sortie");
