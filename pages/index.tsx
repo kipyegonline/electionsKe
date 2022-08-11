@@ -49,7 +49,7 @@ const Home: NextPage = ({
   const [page, setPage] = React.useState(0); // current page on pagination
   // just there
   const [searched, setSearched] = React.useState(false);
-  let timeout!: number;
+  let timeout = React.useRef(null);
   // end points
   let url1 = "https://static.nation.africa/2022/president.json";
   let url2 = "https://static.nation.africa/2022/county.json";
@@ -99,7 +99,7 @@ const Home: NextPage = ({
   // button clicks
   const handleClick = (incomingType: string) => {
     return () => {
-      clearInterval(timeout);
+      clearInterval(timeout.current);
       // if (incomingType === type) return;
       setType(incomingType);
       if (incomingType === "county")
@@ -111,7 +111,7 @@ const Home: NextPage = ({
 
   // search box
   const handleSearch = (search: string) => {
-    clearInterval(timeout);
+    clearInterval(timeout.current);
 
     let info = [];
     if (search) {
@@ -149,13 +149,13 @@ const Home: NextPage = ({
 
     fetchData(presurl, setUpdating, setCandidates, setError, "");
     // request the server every one minute
-    timeout = setInterval(() => {
+    timeout.current = setInterval(() => {
       fetchData(url1, setUpdating, setPrs, setError, type);
       fetchData(presurl, setLoading, setCandidates, setError, "");
       fetchData(url3, setUpdating, setStation, setError, "");
     }, 60000);
     return () => {
-      clearInterval(timeout);
+      clearInterval(timeout.current);
     };
   }, []);
 
@@ -426,11 +426,11 @@ const ElectionTable = ({ data, i }) => {
       <TableCell>{data[0]?.region?.COUNTY_NAME}</TableCell>
       <TableCell>
         {raila?.CANDIDATE_VOTES?.toLocaleString()}{" "}
-        <b className="pl-3 ml-4">({raila?.COUNTY_PERCENTAGE?.toFixed(2)})%</b>
+        <b className="pl-3 ml-4">{raila?.COUNTY_PERCENTAGE?.toFixed(2)} %</b>
       </TableCell>
       <TableCell>
         {ruto?.CANDIDATE_VOTES?.toLocaleString()}{" "}
-        <b className="pl-3 ml-4">({ruto?.COUNTY_PERCENTAGE?.toFixed(2)})%</b>
+        <b className="pl-3 ml-4">{ruto?.COUNTY_PERCENTAGE?.toFixed(2)} %</b>
       </TableCell>
       <TableCell>
         {data[1]?.TOTAL_PRESIDENT_COUNTY_VOTES_CAST?.toLocaleString()}
@@ -450,13 +450,13 @@ const ElectionTableConstituency = ({ data, i }) => {
       <TableCell>
         {raila?.CANDIDATE_VOTES?.toLocaleString()}{" "}
         <b className="pl-3 ml-4">
-          ({raila?.CONSTITUENCY_PERCENTAGE?.toFixed(2)})%
+          {raila?.CONSTITUENCY_PERCENTAGE?.toFixed(2)}%
         </b>
       </TableCell>
       <TableCell>
         {ruto?.CANDIDATE_VOTES?.toLocaleString()}
         <b className="pl-3 ml-4">
-          ({ruto?.CONSTITUENCY_PERCENTAGE?.toFixed(2)})%
+          {ruto?.CONSTITUENCY_PERCENTAGE?.toFixed(2)}%
         </b>
       </TableCell>
       <TableCell>
